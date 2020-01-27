@@ -8,6 +8,18 @@
 
 import Foundation
 
+enum SortOptions: Int {
+    case firstName
+    case lastName
+}
+
+enum TrackType: Int {
+    case none
+    case iOS
+    case Web
+    case UX
+}
+
 class StudentController {
     
     private var students: [Student] = []
@@ -19,26 +31,66 @@ class StudentController {
     
     //Returning Void means that it will return nothing
     func loadFromPersistentStore(completition: @escaping ([Student]?, Error?) -> Void){
-        let fm = FileManager.default
-        guard let url = self.persistentFileURL,
-            fm.fileExists(atPath: url.path) else {return}
         
-        do {
+        //Use to run the code Concurrently by not running in the main queue
+        let bgQueue = DispatchQueue(label: "studentQueue", attributes: .concurrent)
+        
+        //here use pass in the closure the process to the queue
+        //Running async to present the app from becoming unresponsive in the main queue
+        
+        bgQueue.async {
             
-            let data = try Data(contentsOf: url)
+            let fm = FileManager.default
+            guard let url = self.persistentFileURL,
+                fm.fileExists(atPath: url.path) else {return}
             
-            let decoder = JSONDecoder()
-            
-            let students = try decoder.decode([Student].self, from: data)
-            
-            self.students = students
-            
-            completition(students, nil)
-            
-        } catch {
-            print("Error loading student data: \(error)")
-            completition(nil, error)
+            do {
+                
+                let data = try Data(contentsOf: url)
+                
+                let decoder = JSONDecoder()
+                
+                let studentsData = try decoder.decode([Student].self, from: data)
+                
+                self.students = studentsData
+                
+                completition(self.students, nil)
+                
+            } catch {
+                print("Error loading student data: \(error)")
+                completition(nil, error)
+            }
+        }
+    }
+    
+    
+    //Filter function
+    func filter(with trackType: TrackType, sortedBy sorter: SortOptions, completion: @escaping ([Student]) -> Void) {
+        var updateStudents: [Student]
+        
+        switch trackType {
+        case .iOS:
+            //$0 is the current index
+            updateStudents = students.filter {$0.course == "iOS"}
+        case .Web:
+            //$0 is the current index
+            updateStudents = students.filter {$0.course == "Web"}
+        case .UX:
+            //$0 is the current index
+            updateStudents = students.filter {$0.course == "UX"}
+        default://This includes the .none
+            updateStudents = students
         }
         
+        if sorter == .firstName {
+            //Here we compares the current element to the next element
+            updateStudents = updateStudents.sorted{ $0.firstName < $1.firstName }
+        }else{
+            updateStudents = updateStudents.sorted{ $0.lastName < $1.lastName}
+        }
+        
+        //Now we return the results using the completion
+        
+        completion((updateStudents))
     }
 }
