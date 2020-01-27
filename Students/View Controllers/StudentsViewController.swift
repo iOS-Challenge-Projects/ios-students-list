@@ -17,11 +17,27 @@ class StudentsViewController: UIViewController {
     @IBOutlet weak var tableView: UITableView!
     
     // MARK: - Properties
-
+    
+    private let studentController = StudentController()
+    
+    
+    
+//MARK: - View Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         
         tableView.dataSource = self
+        
+        studentController.loadFromPersistentStore { students, error in
+            if let error = error {
+                print("Error loading studens \(error)")
+                return // to end the process
+            }
+            
+            if let students = students {
+                
+            }
+        }
     }
     
     // MARK: - Action Handlers
